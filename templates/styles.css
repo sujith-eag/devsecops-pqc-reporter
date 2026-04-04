@@ -1,59 +1,104 @@
-/* templates/styles.css */
+/* ==========================================================================
+   DevSecOps Audit Report - Print Stylesheet (WeasyPrint)
+   ========================================================================== */
+
+/* --- 1. Page Architecture --- */
 @page {
-    size: A4;
+    size: A4 portrait;
     margin: 2cm;
+    
+    /* Global Footer: Page Numbers */
     @bottom-right {
         content: "Page " counter(page) " of " counter(pages);
-        font-size: 10px;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 9px;
         color: #7f8c8d;
-        font-family: Arial, sans-serif;
     }
+    
+    /* Global Header: Document Title */
     @top-left {
         content: "DevSecOps Executive Audit Report";
-        font-size: 10px;
-        color: #7f8c8d;
-        font-family: Arial, sans-serif;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-size: 9px;
+        color: #bdc3c7;
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
 }
 
+/* Remove headers/footers exclusively for the Cover Page */
+@page:first {
+    @bottom-right { content: none; }
+    @top-left { content: none; }
+}
+
+/* --- 2. Typography & Base --- */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
     color: #2c3e50;
     line-height: 1.5;
+    font-size: 12px;
 }
 
-h1 { color: #2980b9; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
-h2 { color: #34495e; margin-top: 30px; border-bottom: 1px solid #ecf0f1; }
-h3 { color: #7f8c8d; margin-top: 20px; }
+h1 { color: #2c3e50; font-size: 24px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; margin-top: 0; }
+h2 { color: #34495e; font-size: 18px; margin-top: 30px; border-bottom: 1px solid #ecf0f1; padding-bottom: 4px; }
+h3 { color: #7f8c8d; font-size: 14px; margin-top: 20px; }
 
-/* Keep cards and rows together on page breaks */
-.card, tr { page-break-inside: avoid; }
+.page-break { page-break-before: always; }
+.avoid-break { page-break-inside: avoid; }
 
+/* --- 3. Cover Page --- */
+.cover-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+}
+.cover-title { font-size: 36px; font-weight: bold; color: #2c3e50; margin-bottom: 10px; }
+.cover-subtitle { font-size: 18px; color: #7f8c8d; margin-bottom: 40px; }
+.cover-meta { font-size: 14px; color: #34495e; text-align: left; margin: 0 auto; width: 60%; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #e9ecef; }
+.cover-meta th { text-align: left; padding-right: 20px; color: #7f8c8d; font-weight: normal; }
+
+/* --- 4. Badges & Taxonomy --- */
+.badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+}
+.sev-Critical { background-color: #8b0000; }
+.sev-High { background-color: #e74c3c; }
+.sev-Medium { background-color: #f39c12; }
+.sev-Low { background-color: #f1c40f; color: #2c3e50; }
+.sev-Unknown { background-color: #95a5a6; }
+
+/* --- 5. Data Components (Cards & Tables) --- */
 .card {
     border: 1px solid #bdc3c7;
+    background: #fdfdfd;
+    border-radius: 6px;
     padding: 15px;
     margin-bottom: 15px;
-    border-radius: 6px;
-    background: #fdfdfd;
 }
+.card-header { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+
+table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
+th, td { border: 1px solid #ecf0f1; padding: 8px; text-align: left; vertical-align: top; }
+th { background-color: #f8f9fa; color: #34495e; font-weight: bold; }
+tr:nth-child(even) { background-color: #fafbfc; }
 
 .code-snippet {
     background: #f4f6f7;
     color: #c0392b;
     padding: 10px;
     border-radius: 4px;
-    font-family: monospace;
-    font-size: 12px;
-    margin-top: 10px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+    margin-top: 5px;
     white-space: pre-wrap;
     border-left: 3px solid #e74c3c;
 }
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 10px;
-    font-size: 12px;
-}
-th, td { border: 1px solid #ecf0f1; padding: 10px; text-align: left; }
-th { background-color: #ecf0f1; color: #2c3e50; }

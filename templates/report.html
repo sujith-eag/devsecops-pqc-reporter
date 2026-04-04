@@ -2,68 +2,178 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Audit Report</title>
+    <title>{{ project_name }} - Security Audit</title>
 </head>
 <body>
-    <h1>Security Audit: {{ project_name }}</h1>
-    <p><strong>Generated:</strong> {{ date_generated }}</p>
-    
-    <div style="text-align: center; margin: 30px 0;">
-        <img src="file://{{ chart_path }}" style="max-width: 100%; height: auto;">
+
+    <div class="cover-page">
+        <div class="cover-title">Security & Cryptography Audit</div>
+        <div class="cover-subtitle">{{ project_name }}</div>
+        
+        <table class="cover-meta">
+            <tr><th>Date Generated:</th><td>{{ date_generated }}</td></tr>
+            <tr><th>Pipeline Focus:</th><td>SAST, SCA, Cryptographic Discovery (CBOM)</td></tr>
+            <tr><th>Status:</th>
+                <td>
+                    {% if sast_count == 0 and sca_count == 0 and secrets_count == 0 %}
+                        <span style="color: #27ae60; font-weight: bold;">PASSED - CLEAN</span>
+                    {% else %}
+                        <span style="color: #c0392b; font-weight: bold;">ACTION REQUIRED</span>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
     </div>
-    
-    <h2>1. Executive Scorecard</h2>
-    <ul>
-        <li><b>Leaked Secrets:</b> {{ secrets_count }} detected</li>
-        <li><b>Total SAST Code Flaws:</b> {{ sast_count }}</li>
-        <li><b>Vulnerable Dependencies:</b> {{ sca_count }} CVEs</li>
-    </ul>
 
-    <h2>2. Developer Action Plan: Code Flaws (SAST)</h2>
-    {% if sast_records|length == 0 %}
-        <p>✅ Zero code flaws detected. Great job!</p>
-    {% else %}
-        {% for item in sast_records %}
-        <div class="card">
-            <b>[{{ item.severity }}] {{ item.rule }}</b><br>
-            <i>File: {{ item.file }} (Line {{ item.line }})</i>
-            <div class="code-snippet">{{ item.message }}</div>
+    <div class="page-break"></div>
+
+    <h1>Executive Scorecard</h1>
+    <p>This report provides a comprehensive analysis of the repository's security posture, tracking hardcoded secrets, proprietary code flaws, vulnerable third-party dependencies, and cryptographic agility.</p>
+
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="file://{{ chart_paths['landscape'] }}" style="max-width: 100%; height: auto;">
+    </div>
+
+    <table style="font-size: 14px; margin-bottom: 40px;">
+        <tr>
+            <th>Category</th>
+            <th>Total Findings</th>
+            <th>Status</th>
+        </tr>
+        <tr>
+            <td><b>Leaked Secrets (Gitleaks)</b></td>
+            <td>{{ secrets_count }}</td>
+            <td>{% if secrets_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:red">❌ Fail</span>{% endif %}</td>
+        </tr>
+        <tr>
+            <td><b>Code Flaws (SAST)</b></td>
+            <td>{{ sast_count }}</td>
+            <td>{% if sast_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:orange">⚠️ Review</span>{% endif %}</td>
+        </tr>
+        <tr>
+            <td><b>Vulnerable Dependencies (SCA)</b></td>
+            <td>{{ sca_count }}</td>
+            <td>{% if sca_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:orange">⚠️ Review</span>{% endif %}</td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h1>1. Code Flaws (SAST)</h1>
+    <p>Proprietary logic flaws and insecure coding practices identified by Semgrep.</p>
+
+    {% if grouped_sast|length == 0 %}
+        <div class="card" style="text-align: center; border-color: #27ae60;">
+            <h3 style="color: #27ae60; margin: 0;">✅ Zero Code Flaws Detected</h3>
         </div>
-        {% endfor %}
-    {% endif %}
-
-    <h2>3. Developer Action Plan: Dependencies (SCA)</h2>
-    {% if grouped_sca|length == 0 %}
-        <p>✅ Zero dependency vulnerabilities detected.</p>
     {% else %}
-        {% for key, cves in grouped_sca.items() %}
-        <div class="card">
-            <b>Library:</b> {{ key[0] }} (v{{ key[1] }}) &rarr; <b>Upgrade to: <span style="color: #27ae60;">{{ key[2] }}</span></b>
+        {% for (rule, severity), findings in grouped_sast.items() %}
+        <div class="card avoid-break">
+            <div class="card-header">
+                <span class="badge sev-{{ severity }}">{{ severity }}</span> 
+                {{ rule }}
+            </div>
             <table>
-                <tr><th>CVE</th><th>Severity</th><th>Description</th></tr>
-                {% for cve in cves %}
-                <tr><td>{{ cve.cve }}</td><td><b>{{ cve.severity }}</b></td><td>{{ cve.description }}</td></tr>
+                <tr><th style="width: 30%;">File Location</th><th>Issue Context & Snippet</th></tr>
+                {% for item in findings %}
+                <tr>
+                    <td>{{ item.file }}<br><i>Line: {{ item.line }}</i></td>
+                    <td>
+                        {{ item.message }}
+                        {% if item.is_fp %}
+                        <br><span style="color: #f39c12; font-size: 9px;">⚠️ Flagged by engine as potential False Positive</span>
+                        {% endif %}
+                    </td>
+                </tr>
                 {% endfor %}
             </table>
         </div>
         {% endfor %}
     {% endif %}
 
-    <h2>4. Cryptographic Audit (CBOM)</h2>
-    <h3>A. Cryptographic Providers (Libraries)</h3>
-    <table>
-        <tr><th>Library</th><th>Version</th><th>PURL</th></tr>
+    <div class="page-break"></div>
+
+    <h1>2. Vulnerable Dependencies (SCA)</h1>
+    <p>Third-party library vulnerabilities identified by Grype, prioritized by maximum CVSS risk score.</p>
+
+    {% if grouped_sca|length == 0 %}
+        <div class="card" style="text-align: center; border-color: #27ae60;">
+            <h3 style="color: #27ae60; margin: 0;">✅ Zero Dependency Vulnerabilities Detected</h3>
+        </div>
+    {% else %}
+        {% for lib_keys, data in grouped_sca.items() %}
+        <div class="card avoid-break">
+            <div class="card-header" style="display: flex; justify-content: space-between;">
+                <div>
+                    <b>Library:</b> {{ lib_keys[0] }} (v{{ lib_keys[1] }}) &rarr; 
+                    <b>Upgrade to: <span style="color: #27ae60;">{{ lib_keys[2] }}</span></b>
+                </div>
+                <div>
+                    <span style="font-size: 11px; color: #7f8c8d;">Max CVSS: <b>{{ data.max_cvss }}</b></span>
+                </div>
+            </div>
+            <table>
+                <tr>
+                    <th style="width: 15%;">CVE</th>
+                    <th style="width: 10%;">Severity</th>
+                    <th style="width: 15%;">CWE</th>
+                    <th>Description</th>
+                </tr>
+                {% for cve in data.cves %}
+                <tr>
+                    <td>{{ cve.cve }}</td>
+                    <td><span class="badge sev-{{ cve.severity }}">{{ cve.severity }}</span></td>
+                    <td>{{ cve.cwe }}</td>
+                    <td>{{ cve.description }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="page-break"></div>
+
+    <h1>3. Cryptographic Audit (CBOM)</h1>
+    <p>Inventory of cryptographic algorithms and the libraries/frameworks providing them.</p>
+
+    <div style="text-align: center; margin: 20px 0;" class="avoid-break">
+        <img src="file://{{ chart_paths['crypto'] }}" style="width: 300px; height: auto;">
+    </div>
+
+    <h2 class="avoid-break">A. Cryptographic Providers (Libraries)</h2>
+    <table class="avoid-break">
+        <tr>
+            <th style="width: 30%;">Library</th>
+            <th style="width: 15%;">Version</th>
+            <th>Package URL (PURL)</th>
+        </tr>
         {% for prov in providers %}
-        <tr><td>{{ prov.library }}</td><td>{{ prov.version }}</td><td>{{ prov.purl }}</td></tr>
+        <tr>
+            <td><b>{{ prov.library }}</b></td>
+            <td>{{ prov.version }}</td>
+            <td style="font-family: monospace; font-size: 10px;">{{ prov.purl }}</td>
+        </tr>
         {% endfor %}
     </table>
 
-    <h3>B. Cryptographic Primitives & Assets</h3>
+    <h2>B. Cryptographic Primitives & Assets</h2>
     <table>
-        <tr><th>Name</th><th>Asset Type</th><th>Location</th><th>Description</th></tr>
+        <tr>
+            <th style="width: 25%;">Name</th>
+            <th style="width: 20%;">Asset Type</th>
+            <th style="width: 20%;">Location</th>
+            <th>Context</th>
+        </tr>
         {% for prim in primitives %}
-        <tr><td>{{ prim.name }}</td><td>{{ prim.asset_type }}</td><td>{{ prim.location }}</td><td>{{ prim.description }}</td></tr>
+        <tr class="avoid-break">
+            <td><b>{{ prim.name }}</b></td>
+            <td>{{ prim.asset_type }}</td>
+            <td style="font-family: monospace; font-size: 10px; word-break: break-all;">{{ prim.location }}</td>
+            <td>{{ prim.description }}</td>
+        </tr>
         {% endfor %}
     </table>
+
 </body>
 </html>

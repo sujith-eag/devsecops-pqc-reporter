@@ -5,7 +5,10 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# --- Safe JSON Loader ---
+# --- Severity Mapping for Sorting ---
+# This allows Pandas to mathematically sort text-based severities
+SEVERITY_WEIGHT = {'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, 'Unknown': 4}
+
 def load_json_safely(filepath):
     """Safely load JSON with error handling for missing or malformed files."""
     if not os.path.exists(filepath):
@@ -19,24 +22,48 @@ def load_json_safely(filepath):
         logger.error(f"Malformed JSON in {filepath}: {e}")
         return {}
 
-# --- Data Extraction Functions ---
 def extract_sast(filepath):
+    """Extracts code flaws, groups them by Rule, and flags False Positives."""
     data = load_json_safely(filepath)
     vulnerabilities = data.get('vulnerabilities', [])
     
     findings = []
     for issue in vulnerabilities:
         loc = issue.get('location', {})
+        flags = issue.get('flags', [])
+        
+        # Check if Semgrep flagged this as a likely false positive
+        is_false_positive = any(f.get('type') == 'flagged-as-likely-false-positive' for f in flags)
+        
         findings.append({
             'severity': issue.get('severity', 'Unknown'),
+            'confidence': issue.get('details', {}).get('confidence', {}).get('value', 'UNKNOWN'),
             'rule': issue.get('identifiers', [{}])[0].get('name', 'Unknown Rule'),
             'file': loc.get('file', 'Unknown File'),
             'line': loc.get('start_line', 'N/A'),
-            'message': issue.get('message', 'No details provided.')
+            'message': issue.get('message', 'No details provided.'),
+            'is_fp': is_false_positive
         })
-    return pd.DataFrame(findings)
+        
+    df = pd.DataFrame(findings)
+    if df.empty:
+        return {}, df
+
+    # Apply mathematical sorting weight
+    df['sev_rank'] = df['severity'].map(SEVERITY_WEIGHT).fillna(4)
+    
+    # Sort globally by severity, then by rule name
+    df = df.sort_values(by=['sev_rank', 'rule'])
+    
+    # Group by the Rule (e.g., all SQL Injections grouped together)
+    grouped_sast = {}
+    for (rule, severity), group in df.groupby(['rule', 'severity'], sort=False):
+        grouped_sast[(rule, severity)] = group.to_dict('records')
+        
+    return grouped_sast, df
 
 def extract_sca(filepath):
+    """Extracts CVEs, enriches with CVSS/EPSS, and mathematically sorts the highest risks to the top."""
     data = load_json_safely(filepath)
     matches = data.get('matches', [])
     
@@ -44,27 +71,59 @@ def extract_sca(filepath):
     for match in matches:
         vuln = match.get('vulnerability', {})
         artifact = match.get('artifact', {})
-        fix = vuln.get('fix', {})
-        fix_versions = fix.get('versions', ['None Available'])
         
+        # Safe extraction of deep arrays (CVSS, EPSS, CWE)
+        cvss_list = vuln.get('cvss', [{}])
+        cvss_score = cvss_list[0].get('metrics', {}).get('baseScore', 0.0) if cvss_list else 0.0
+        
+        epss_list = vuln.get('epss', [{}])
+        epss_score = epss_list[0].get('epss', 0.0) if epss_list else 0.0
+        
+        cwe_list = vuln.get('cwes', [{}])
+        cwe_id = cwe_list[0].get('cwe', 'N/A') if cwe_list else 'N/A'
+
         findings.append({
             'severity': vuln.get('severity', 'Unknown'),
+            'cvss_score': cvss_score,
+            'epss_score': epss_score,
+            'cwe': cwe_id,
             'cve': vuln.get('id', 'Unknown CVE'),
             'library': artifact.get('name', 'Unknown Library'),
             'version': artifact.get('version', 'Unknown'),
-            'fix_version': ", ".join(fix_versions),
+            'fix_version': ", ".join(vuln.get('fix', {}).get('versions', ['None Available'])),
             'description': vuln.get('description', 'No description')[:120] + '...'
         })
+        
     df = pd.DataFrame(findings)
+    if df.empty:
+        return {}, df
+
+    # Apply mathematical sorting weight
+    df['sev_rank'] = df['severity'].map(SEVERITY_WEIGHT).fillna(4)
     
-    # Group the dataframe to prevent massive, unreadable tables
-    if not df.empty:
-        return df.groupby(['library', 'version', 'fix_version']).apply(
-            lambda x: x[['cve', 'severity', 'description']].to_dict('records')
-        ).to_dict(), df
-    return {}, df
+    # Sort primarily by Severity, secondarily by exact CVSS score (highest first)
+    df = df.sort_values(by=['sev_rank', 'cvss_score'], ascending=[True, False])
+
+    grouped_sca = {}
+    # group by library keeping the sorted order
+    for lib_keys, group in df.groupby(['library', 'version', 'fix_version'], sort=False):
+        # Determine the maximum severity and CVSS for this specific library block
+        max_sev = group['severity'].iloc[0] 
+        max_cvss = group['cvss_score'].max()
+        
+        grouped_sca[lib_keys] = {
+            'max_severity': max_sev,
+            'max_cvss': max_cvss,
+            'cves': group.to_dict('records')
+        }
+        
+    # Final Polish: Sort the resulting dictionary blocks so the library with the highest CVSS is printed first
+    sorted_grouped_sca = dict(sorted(grouped_sca.items(), key=lambda item: item[1]['max_cvss'], reverse=True))
+
+    return sorted_grouped_sca, df
 
 def extract_cbom(filepath):
+    """Extracts Cryptographic Assets and Libraries."""
     data = load_json_safely(filepath)
     components = data.get('components', [])
     

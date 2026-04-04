@@ -24,16 +24,15 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
 
     logger.info("Starting Data Extraction...")
-    sast_df = data_parser.extract_sast(os.path.join(args.input_dir, "gl-sast-report.json"))
+    grouped_sast, sast_df = data_parser.extract_sast(os.path.join(args.input_dir, "gl-sast-report.json"))
     grouped_sca, sca_df = data_parser.extract_sca(os.path.join(args.input_dir, "vulnerabilities.json"))
     primitives, providers = data_parser.extract_cbom(args.cbom)
     secrets_count = data_parser.get_secrets_count(os.path.join(args.input_dir, "gl-secret-detection-report.json"))
 
     logger.info("Generating Visualizations...")
-    chart_path = visualizer.generate_charts(sast_df, sca_df, args.output_dir)
+    chart_paths = visualizer.generate_charts(sast_df, sca_df, primitives, args.output_dir)
 
     logger.info("Rendering Template...")
-    # Load HTML from the /app/templates directory
     env = Environment(loader=FileSystemLoader('/app/templates'))
     template = env.get_template('report.html')
     
@@ -43,11 +42,11 @@ def main():
         secrets_count=secrets_count,
         sast_count=len(sast_df),
         sca_count=len(sca_df),
-        sast_records=sast_df.to_dict('records') if not sast_df.empty else [],
+        grouped_sast=grouped_sast,
         grouped_sca=grouped_sca,
         primitives=primitives,
         providers=providers,
-        chart_path=chart_path
+        chart_paths=chart_paths
     )
 
     logger.info("Compiling PDF with WeasyPrint...")
@@ -58,6 +57,10 @@ def main():
         pdf_path, 
         stylesheets=[CSS('/app/templates/styles.css')]
     )
+    
+    # to make file permission readable
+    os.chmod(pdf_path, 0o666)
+    
     
     logger.info(f"✅ Success! Report generated at: {pdf_path}")
 

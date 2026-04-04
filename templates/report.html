@@ -40,20 +40,37 @@
             <th>Total Findings</th>
             <th>Status</th>
         </tr>
-        <tr>
+<tr>
             <td><b>Leaked Secrets (Gitleaks)</b></td>
             <td>{{ secrets_count }}</td>
-            <td>{% if secrets_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:red">❌ Fail</span>{% endif %}</td>
+            <td>{% if secrets_count == 0 %}<span style="color:green">[ PASS ]</span>{% else %}<span style="color:red">[ FAIL ]</span>{% endif %}</td>
         </tr>
         <tr>
             <td><b>Code Flaws (SAST)</b></td>
             <td>{{ sast_count }}</td>
-            <td>{% if sast_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:orange">⚠️ Review</span>{% endif %}</td>
+            <td>{% if sast_count == 0 %}<span style="color:green">[ PASS ]</span>{% else %}<span style="color:orange">[ REVIEW ]</span>{% endif %}</td>
         </tr>
         <tr>
             <td><b>Vulnerable Dependencies (SCA)</b></td>
             <td>{{ sca_count }}</td>
-            <td>{% if sca_count == 0 %}<span style="color:green">✅ Pass</span>{% else %}<span style="color:orange">⚠️ Review</span>{% endif %}</td>
+            <td>{% if sca_count == 0 %}<span style="color:green">[ PASS ]</span>{% else %}<span style="color:orange">[ REVIEW ]</span>{% endif %}</td>
+        </tr>
+
+
+        <tr>
+            <td><b>Leaked Secrets (Gitleaks)</b></td>
+            <td>{{ secrets_count }}</td>
+            <td>{% if secrets_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:red">[ Fail ]</span>{% endif %}</td>
+        </tr>
+        <tr>
+            <td><b>Code Flaws (SAST)</b></td>
+            <td>{{ sast_count }}</td>
+            <td>{% if sast_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:orange">[ Review ]</span>{% endif %}</td>
+        </tr>
+        <tr>
+            <td><b>Vulnerable Dependencies (SCA)</b></td>
+            <td>{{ sca_count }}</td>
+            <td>{% if sca_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:orange">[ Review ]</span>{% endif %}</td>
         </tr>
     </table>
 
@@ -61,10 +78,9 @@
 
     <h1>1. Code Flaws (SAST)</h1>
     <p>Proprietary logic flaws and insecure coding practices identified by Semgrep.</p>
-
     {% if grouped_sast|length == 0 %}
         <div class="card" style="text-align: center; border-color: #27ae60;">
-            <h3 style="color: #27ae60; margin: 0;">✅ Zero Code Flaws Detected</h3>
+            <h3 style="color: #27ae60; margin: 0;">[ Zero ] Code Flaws Detected</h3>
         </div>
     {% else %}
         {% for (rule, severity), findings in grouped_sast.items() %}
@@ -81,7 +97,7 @@
                     <td>
                         {{ item.message }}
                         {% if item.is_fp %}
-                        <br><span style="color: #f39c12; font-size: 9px;">⚠️ Flagged by engine as potential False Positive</span>
+                        <br><span style="color: #f39c12; font-size: 9px;"><b>[WARNING]</b> Flagged by engine as potential False Positive</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -98,7 +114,7 @@
 
     {% if grouped_sca|length == 0 %}
         <div class="card" style="text-align: center; border-color: #27ae60;">
-            <h3 style="color: #27ae60; margin: 0;">✅ Zero Dependency Vulnerabilities Detected</h3>
+            <h3 style="color: #27ae60; margin: 0;">[ Zero ] Dependency Vulnerabilities Detected</h3>
         </div>
     {% else %}
         {% for lib_keys, data in grouped_sca.items() %}

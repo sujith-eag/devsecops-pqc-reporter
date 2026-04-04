@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import datetime
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from weasyprint import HTML, CSS
 
 # Import our custom modules
@@ -21,6 +21,8 @@ def main():
     parser.add_argument("--project-name", default="Application Security Scan", help="Name on the report cover")
     args = parser.parse_args()
 
+    # Force absolute path to ensure WeasyPrint can resolve file:// URIs
+    args.output_dir = os.path.abspath(args.output_dir) 
     os.makedirs(args.output_dir, exist_ok=True)
 
     logger.info("Starting Data Extraction...")
@@ -32,8 +34,17 @@ def main():
     logger.info("Generating Visualizations...")
     chart_paths = visualizer.generate_charts(sast_df, sca_df, primitives, args.output_dir)
 
+
     logger.info("Rendering Template...")
-    env = Environment(loader=FileSystemLoader('/app/templates'))
+    # Calculate the absolute path to the templates directory dynamically
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    template_dir = os.path.join(base_dir, 'templates')
+    
+    env = Environment(
+        loader=FileSystemLoader(template_dir),
+        autoescape=select_autoescape(['html', 'xml'])
+    )
+
     template = env.get_template('report.html')
     
     html_out = template.render(

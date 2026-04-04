@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 # --- Severity Mapping for Sorting ---
 # This allows Pandas to mathematically sort text-based severities
-SEVERITY_WEIGHT = {'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, 'Unknown': 4}
+SEVERITY_WEIGHT = {'Critical': 0, 'High': 1, 'Medium': 2, 'Low': 3, 'Info': 4, 'Unknown': 5}
 
 def load_json_safely(filepath):
     """Safely load JSON with error handling for missing or malformed files."""

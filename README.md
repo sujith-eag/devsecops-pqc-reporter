@@ -14,3 +14,6 @@ sudo docker run --rm -u $(id -u):$(id -g) -v "/home/sujith/Desktop/websites/eagl
 `docker build -t devsecops-reporter -f Dockerfile.reporter .`
 `docker run --rm -v "$(pwd):/src" pqc-reporter`
 
+
+
+> Still no permission to edit pdf

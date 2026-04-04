@@ -48,8 +48,9 @@ h3 { color: #7f8c8d; font-size: 14px; margin-top: 20px; }
 .avoid-break { page-break-inside: avoid; }
 
 /* --- 3. Cover Page --- */
+/* Update this in templates/styles.css */
 .cover-page {
-    height: 100vh;
+    height: 24cm; /* A physical print measurement */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -70,10 +71,12 @@ h3 { color: #7f8c8d; font-size: 14px; margin-top: 20px; }
     color: white;
     text-transform: uppercase;
 }
+
 .sev-Critical { background-color: #8b0000; }
 .sev-High { background-color: #e74c3c; }
 .sev-Medium { background-color: #f39c12; }
 .sev-Low { background-color: #f1c40f; color: #2c3e50; }
+.sev-Info { background-color: #3498db; } /* Added */
 .sev-Unknown { background-color: #95a5a6; }
 
 /* --- 5. Data Components (Cards & Tables) --- */

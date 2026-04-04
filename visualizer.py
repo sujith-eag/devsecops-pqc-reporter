@@ -12,6 +12,7 @@ SEV_COLORS = {
     'High': '#e74c3c',     # Bright Red
     'Medium': '#f39c12',   # Orange
     'Low': '#f1c40f',      # Yellow
+    'Info': '#3498db',     # Blue
     'Unknown': '#95a5a6'   # Grey
 }
 
@@ -40,9 +41,12 @@ def _generate_threat_landscape(sast_df, sca_df, output_path):
         _generate_empty_state(output_path, '✅ Zero Vulnerabilities Detected')
         return
 
-    df = pd.DataFrame({'Severity': severities})
-    order = ['Critical', 'High', 'Medium', 'Low', 'Unknown']
-    
+    # If a weird severity like "Negligible" appears, force it to 'Unknown' so Seaborn doesn't crash
+    cleaned_severities = [s if s in SEV_COLORS else 'Unknown' for s in severities]
+
+    df = pd.DataFrame({'Severity': cleaned_severities})
+    order = ['Critical', 'High', 'Medium', 'Low', 'Info', 'Unknown']    
+
     # 2. Setup the Matplotlib figure
     plt.figure(figsize=(7, 3.5))
     sns.set_theme(style="white") # Clean white background (no gridlines)
@@ -87,10 +91,10 @@ def _generate_crypto_donut(primitives, output_path):
     names = [p.get('name', 'Unknown') for p in primitives]
     df = pd.DataFrame({'Algorithm': names})
     counts = df['Algorithm'].value_counts()
-    
+
     # Limit to top 5 to prevent the chart from becoming unreadable, group rest into "Other"
     if len(counts) > 5:
-        top_counts = counts[:4]
+        top_counts = counts[:4].copy()
         top_counts['Other'] = counts[4:].sum()
         counts = top_counts
         

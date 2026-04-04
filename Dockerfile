@@ -1,5 +1,5 @@
 # ==========================================
-# DEVSECOPS REPORTING CONTAINER
+# DEVSECOPS REPORTING CONTAINER (v2.0)
 # ==========================================
 FROM python:3.12-slim
 
@@ -34,17 +34,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Create a non-root user for security compliance
 RUN groupadd -r reporter && useradd -r -g reporter -m reporter
 
-# Setup application directories
+# Setup application directory
 WORKDIR /app
-RUN mkdir -p /app/templates /app/assets && \
-    chown -R reporter:reporter /app
+RUN chown -R reporter:reporter /app
 
-# Copy the logic scripts and templates (To be created next)
-COPY report_builder.py /app/
-# COPY templates/ /app/templates/
+# --- NEW: Copy the Modular Architecture ---
+# Copy the templates directory
+COPY templates/ /app/templates/
+# Copy the Python modules
+COPY data_parser.py visualizer.py main.py /app/
 
 # Switch to the non-root user
 USER reporter
 
-# The execution command. It expects the /src volume to be mounted.
-ENTRYPOINT ["python", "/app/report_builder.py"]
+# The execution command points to the new orchestrator
+ENTRYPOINT ["python", "/app/main.py"]

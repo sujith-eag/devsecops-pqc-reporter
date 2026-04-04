@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Report</title>
+</head>
+<body>
+    <h1>Security Audit: {{ project_name }}</h1>
+    <p><strong>Generated:</strong> {{ date_generated }}</p>
+    
+    <div style="text-align: center; margin: 30px 0;">
+        <img src="file://{{ chart_path }}" style="max-width: 100%; height: auto;">
+    </div>
+    
+    <h2>1. Executive Scorecard</h2>
+    <ul>
+        <li><b>Leaked Secrets:</b> {{ secrets_count }} detected</li>
+        <li><b>Total SAST Code Flaws:</b> {{ sast_count }}</li>
+        <li><b>Vulnerable Dependencies:</b> {{ sca_count }} CVEs</li>
+    </ul>
+
+    <h2>2. Developer Action Plan: Code Flaws (SAST)</h2>
+    {% if sast_records|length == 0 %}
+        <p>✅ Zero code flaws detected. Great job!</p>
+    {% else %}
+        {% for item in sast_records %}
+        <div class="card">
+            <b>[{{ item.severity }}] {{ item.rule }}</b><br>
+            <i>File: {{ item.file }} (Line {{ item.line }})</i>
+            <div class="code-snippet">{{ item.message }}</div>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>3. Developer Action Plan: Dependencies (SCA)</h2>
+    {% if grouped_sca|length == 0 %}
+        <p>✅ Zero dependency vulnerabilities detected.</p>
+    {% else %}
+        {% for key, cves in grouped_sca.items() %}
+        <div class="card">
+            <b>Library:</b> {{ key[0] }} (v{{ key[1] }}) &rarr; <b>Upgrade to: <span style="color: #27ae60;">{{ key[2] }}</span></b>
+            <table>
+                <tr><th>CVE</th><th>Severity</th><th>Description</th></tr>
+                {% for cve in cves %}
+                <tr><td>{{ cve.cve }}</td><td><b>{{ cve.severity }}</b></td><td>{{ cve.description }}</td></tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <h2>4. Cryptographic Audit (CBOM)</h2>
+    <h3>A. Cryptographic Providers (Libraries)</h3>
+    <table>
+        <tr><th>Library</th><th>Version</th><th>PURL</th></tr>
+        {% for prov in providers %}
+        <tr><td>{{ prov.library }}</td><td>{{ prov.version }}</td><td>{{ prov.purl }}</td></tr>
+        {% endfor %}
+    </table>
+
+    <h3>B. Cryptographic Primitives & Assets</h3>
+    <table>
+        <tr><th>Name</th><th>Asset Type</th><th>Location</th><th>Description</th></tr>
+        {% for prim in primitives %}
+        <tr><td>{{ prim.name }}</td><td>{{ prim.asset_type }}</td><td>{{ prim.location }}</td><td>{{ prim.description }}</td></tr>
+        {% endfor %}
+    </table>
+</body>
+</html>

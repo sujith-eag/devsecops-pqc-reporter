@@ -34,10 +34,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Setup application directory
 WORKDIR /app
 
-# Copy the templates directory
-COPY templates/ /app/templates/
-# Copy the Python modules
-COPY data_parser.py visualizer.py main.py /app/
+# Copy the entire source directory into the container
+COPY src/ /app/src/
 
 # The execution command points to the new orchestrator
-ENTRYPOINT ["python", "/app/main.py"]
+ENTRYPOINT ["python", "/app/src/main.py"]

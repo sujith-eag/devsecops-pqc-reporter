@@ -13,6 +13,15 @@ import visualizer
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger(__name__)
 
+def count_severities(df):
+    """Helper function to calculate the Risk Matrix for the Executive Scorecard."""
+    counts = {'Critical': 0, 'High': 0, 'Medium': 0, 'Low': 0, 'Info': 0}
+    if not df.empty and 'severity' in df.columns:
+        val_counts = df['severity'].value_counts().to_dict()
+        for k in counts.keys():
+            counts[k] = val_counts.get(k, 0)
+    return counts
+
 def main():
     parser = argparse.ArgumentParser(description="Generate DevSecOps PDF Report")
     parser.add_argument("--input-dir", required=True, help="Directory containing JSON reports")
@@ -34,6 +43,9 @@ def main():
     logger.info("Generating Visualizations...")
     chart_paths = visualizer.generate_charts(sast_df, sca_df, primitives, args.output_dir)
 
+    # --- NEW: Calculate Risk Matrix Data ---
+    sast_matrix = count_severities(sast_df)
+    sca_matrix = count_severities(sca_df)
 
     logger.info("Rendering Template...")
     # Calculate the absolute path to the templates directory dynamically
@@ -53,6 +65,8 @@ def main():
         secrets_count=secrets_count,
         sast_count=len(sast_df),
         sca_count=len(sca_df),
+        sast_matrix=sast_matrix, # PASSED TO JINJA
+        sca_matrix=sca_matrix,   # PASSED TO JINJA
         grouped_sast=grouped_sast,
         grouped_sca=grouped_sca,
         primitives=primitives,
@@ -63,10 +77,10 @@ def main():
     logger.info("Compiling PDF with WeasyPrint...")
     pdf_path = os.path.join(args.output_dir, "Executive_Audit_Report.pdf")
     
-    # Render PDF using the HTML string and the separate CSS file
+    # Render PDF using the HTML string and dynamic CSS path
     HTML(string=html_out).write_pdf(
         pdf_path,
-        stylesheets=[CSS('/app/templates/styles.css')]
+        stylesheets=[CSS(os.path.join(template_dir, 'styles.css'))]
     )
 
     # DYNAMIC OWNERSHIP SYNC (Match Host Permissions)
@@ -88,7 +102,7 @@ def main():
         # 3. Sync PDF
         if os.path.exists(pdf_path):
             os.chown(pdf_path, host_uid, host_gid)
-            os.chmod(pdf_path, 0o644) # Standard read/write permissions
+            os.chmod(pdf_path, 0o644) 
             
         logger.info(f"Permissions synced successfully to Host UID:{host_uid} GID:{host_gid}")
     except Exception as e:

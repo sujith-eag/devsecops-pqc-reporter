@@ -80,16 +80,6 @@ docker run --rm -v "/absolute/path/to/project:/data" pqc-reporter \
   --project-name "My Project"
 ```
 
-If file permission issues occur for the generated PDF, run the container with a host UID/GID mapping or adjust host directory permissions. Example (preserve host ownership):
-
-```bash
-docker run --rm -u $(id -u):$(id -g) -v "/absolute/path/to/project:/data" pqc-reporter \
-  --input-dir /data/pqc-reports \
-  --cbom /data/final-cbom.json \
-  --output-dir /data/pqc-reports/report \
-  --project-name "My Project"
-```
-
 ## Files of interest
 
 - `data_parser.py` — extracts and normalizes SAST, SCA and CBOM data into pandas structures.

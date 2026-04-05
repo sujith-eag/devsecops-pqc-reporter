@@ -2,6 +2,7 @@ import json
 import os
 import logging
 import pandas as pd
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def extract_sca(filepath):
             'library': artifact.get('name', 'Unknown Library'),
             'version': artifact.get('version', 'Unknown'),
             'fix_version': ", ".join(vuln.get('fix', {}).get('versions', ['None Available'])),
-            'description': vuln.get('description', 'No description')[:120] + '...'
+            'description': vuln.get('description', 'No description')
         })
         
     df = pd.DataFrame(findings)
@@ -123,12 +124,23 @@ def extract_sca(filepath):
     return sorted_grouped_sca, df
 
 def extract_cbom(filepath):
-    """Extracts Cryptographic Assets and Libraries."""
+    """Extracts Cryptographic Assets and Libraries using Advanced Regex Discovery."""
     data = load_json_safely(filepath)
-    components = data.get('components', [])
+    components = data.get('components') or []
     
     providers = []
     primitives = []
+    
+    # 1. Safe Substrings: Highly specific crypto terms
+    CRYPTO_SUBSTRINGS = [
+        'bcrypt', 'crypto', 'jwt', 'argon2', 'scrypt', 'jsonwebtoken', 
+        'jws', 'hmac', 'pkcs', 'x509', 'forge', 'nacl', 'elliptic', 
+        'pbkdf2', 'blake2', 'chacha', 'poly1305', 'webauthn'
+    ]
+    
+    # 2. Strict Regex: Short acronyms bounded by start, end, hyphens, or dots
+    # This catches "sha256-js" and "md5-browser" but IGNORES "includes" and "shallow"
+    CRYPTO_REGEX = re.compile(r'(?i)(^|[-/.])(aes|des|rsa|md5|sha\d*|ssl|tls|ecc|dsa|mac)([-/.]|$)')
     
     for comp in components:
         c_type = comp.get('type')
@@ -145,12 +157,29 @@ def extract_cbom(filepath):
                 'description': comp.get('description', ''),
                 'location': location
             })
-        elif c_type in ['library', 'framework'] and 'cryptoProperties' in comp:
-            providers.append({
-                'library': name,
-                'version': comp.get('version', 'N/A'),
-                'purl': comp.get('purl', 'Unknown')
-            })
+            
+        elif c_type in ['library', 'framework']:
+            name_lower = name.lower()
+            
+            # The Advanced Hybrid Check
+            has_crypto_tag = 'cryptoProperties' in comp
+            has_crypto_sub = any(k in name_lower for k in CRYPTO_SUBSTRINGS)
+            has_crypto_reg = bool(CRYPTO_REGEX.search(name_lower))
+            
+            if has_crypto_tag or has_crypto_sub or has_crypto_reg:
+                licenses = comp.get('licenses') or []
+                license_id = licenses[0].get('license', {}).get('id', 'Unknown') if licenses else 'Unknown'
+                
+                hashes = comp.get('hashes') or []
+                hash_alg = hashes[0].get('alg', 'Unknown') if hashes else 'Unknown'
+
+                providers.append({
+                    'library': name,
+                    'version': comp.get('version', 'N/A'),
+                    'purl': comp.get('purl', 'Unknown'),
+                    'license': license_id,
+                    'hash_alg': hash_alg
+                })
             
     return primitives, providers
 

@@ -17,17 +17,35 @@ The engine utilizes Pandas for deep data extraction, Matplotlib/Seaborn for modu
 
 The reporting engine is designed to run via Docker to isolate the heavy graphical dependencies (Cairo, Pango, WeasyPrint) from your host system or CI/CD runner.
 
-### 1. Build the Image
+### Option A: Quick Start (Pre-built Image)
+The fastest way to use the reporter is via our published images in Dockerhub or GHRC. Docker will automatically pull the image if you don't have it locally.
 
+Run the container using the Docker Hub registry:
 ```bash
-docker build -t pqc-reporter .
+docker run --rm -v "/absolute/path/to/project:/data" sujitheag/devsecops-pqc-reporter:latest \
+  --input-dir /data/pqc-reports \
+  --cbom /data/final-cbom.json \
+  --output-dir /data/pqc-reports/report \
+  --project-name "My Project"
 ```
 
-### 2. Run the Report Generator
+Note: To use the GitHub Container Registry instead, swap the image name to `ghcr.io/sujith-eag/devsecops-pqc-reporter:latest`
+
+---
+
+### Option B: Build from Source (Local Development)
+If you are modifying the HTML templates or the Python engine, you can build and run the image locally.
+
+**1. Build the Image:**
+```bash
+docker build -t devsecops-pqc-reporter .
+```
+
+**2. Run the Report Generator:**
 Mount your project directory to `/data` inside the container. The dynamic ownership sync will ensure the resulting PDF and PNGs are instantly editable by your local user.
 
 ```bash
-docker run --rm -v "/absolute/path/to/project:/data" pqc-reporter \
+docker run --rm -v "/absolute/path/to/project:/data" devsecops-pqc-reporter \
   --input-dir /data/pqc-reports \
   --cbom /data/final-cbom.json \
   --output-dir /data/pqc-reports/report \

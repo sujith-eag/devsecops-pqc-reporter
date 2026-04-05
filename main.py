@@ -65,13 +65,34 @@ def main():
     
     # Render PDF using the HTML string and the separate CSS file
     HTML(string=html_out).write_pdf(
-        pdf_path, 
+        pdf_path,
         stylesheets=[CSS('/app/templates/styles.css')]
     )
-    
-    # to make file permission readable
-    os.chmod(pdf_path, 0o666)
-    
+
+    # DYNAMIC OWNERSHIP SYNC (Match Host Permissions)
+    try:
+        # Inspect the input directory to find the host user's UID and GID
+        dir_stat = os.stat(args.input_dir)
+        host_uid = dir_stat.st_uid
+        host_gid = dir_stat.st_gid
+
+        # 1. Sync Output Directory
+        os.chown(args.output_dir, host_uid, host_gid)
+
+        # 2. Sync Charts
+        for key, path in chart_paths.items():
+            if path and os.path.exists(path):
+                os.chown(path, host_uid, host_gid)
+                os.chmod(path, 0o644) # Standard read/write permissions
+
+        # 3. Sync PDF
+        if os.path.exists(pdf_path):
+            os.chown(pdf_path, host_uid, host_gid)
+            os.chmod(pdf_path, 0o644) # Standard read/write permissions
+            
+        logger.info(f"Permissions synced successfully to Host UID:{host_uid} GID:{host_gid}")
+    except Exception as e:
+        logger.warning(f"Could not sync file ownership: {e}")
     
     logger.info(f"✅ Success! Report generated at: {pdf_path}")
 

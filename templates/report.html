@@ -40,7 +40,7 @@
             <th>Total Findings</th>
             <th>Status</th>
         </tr>
-<tr>
+        <tr>
             <td><b>Leaked Secrets (Gitleaks)</b></td>
             <td>{{ secrets_count }}</td>
             <td>{% if secrets_count == 0 %}<span style="color:green">[ PASS ]</span>{% else %}<span style="color:red">[ FAIL ]</span>{% endif %}</td>
@@ -57,21 +57,7 @@
         </tr>
 
 
-        <tr>
-            <td><b>Leaked Secrets (Gitleaks)</b></td>
-            <td>{{ secrets_count }}</td>
-            <td>{% if secrets_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:red">[ Fail ]</span>{% endif %}</td>
-        </tr>
-        <tr>
-            <td><b>Code Flaws (SAST)</b></td>
-            <td>{{ sast_count }}</td>
-            <td>{% if sast_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:orange">[ Review ]</span>{% endif %}</td>
-        </tr>
-        <tr>
-            <td><b>Vulnerable Dependencies (SCA)</b></td>
-            <td>{{ sca_count }}</td>
-            <td>{% if sca_count == 0 %}<span style="color:green">[ Pass ]</span>{% else %}<span style="color:orange">[ Review ]</span>{% endif %}</td>
-        </tr>
+        
     </table>
 
     <div class="page-break"></div>

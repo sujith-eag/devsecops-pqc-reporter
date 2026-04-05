@@ -1,5 +1,5 @@
 # ==========================================
-# DEVSECOPS REPORTING CONTAINER (v2.0)
+# DEVSECOPS REPORTING CONTAINER
 # ==========================================
 FROM python:3.12-slim
 
@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Upgrade pip and install the Python stack
-# Pinning WeasyPrint to the stable 68.x branch (Feb 2026)
+# Pinning WeasyPrint to the stable 68.x branch
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
     weasyprint==68.1 \
@@ -31,21 +31,13 @@ RUN pip install --no-cache-dir --upgrade pip && \
     matplotlib \
     seaborn
 
-# Create a non-root user for security compliance
-RUN groupadd -r reporter && useradd -r -g reporter -m reporter
-
 # Setup application directory
 WORKDIR /app
-RUN chown -R reporter:reporter /app
 
-# --- NEW: Copy the Modular Architecture ---
 # Copy the templates directory
 COPY templates/ /app/templates/
 # Copy the Python modules
 COPY data_parser.py visualizer.py main.py /app/
-
-# Switch to the non-root user
-USER reporter
 
 # The execution command points to the new orchestrator
 ENTRYPOINT ["python", "/app/main.py"]
